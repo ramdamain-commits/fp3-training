@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#27ae60">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<!-- Apple デバイス対応 -->
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FP3過去問">
+<!-- SEO -->
+<meta name="description" content="FP3級過去問学習ツール。オフライン対応PWA。">
+<title>FP3級 過去問トレーニング</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', 'Yu Gothic UI', sans-serif; background: #f0faf0; color: #333; line-height: 1.7; }
+.container { max-width: 800px; margin: 0 auto; padding: 20px; }
+h1 { text-align: center; margin: 20px 0; color: #1a5c38; font-size: 1.5rem; }
+.controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; justify-content: center; }
+.controls select, .controls button { padding: 8px 16px; border-radius: 6px; border: 1px solid #ccc; font-size: 0.95rem; }
+.controls button { background: #27ae60; color: #fff; border: none; cursor: pointer; }
+.controls button:hover { background: #219a52; }
+.btn-reset { background: #e74c3c !important; }
+.btn-reset:hover { background: #c0392b !important; }
+.stats { text-align: center; margin-bottom: 16px; font-size: 0.9rem; color: #666; }
+.question-card { background: #fff; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 24px; margin-bottom: 20px; }
+.question-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 6px; }
+.question-num { font-weight: bold; color: #1a5c38; }
+.badges { display: flex; gap: 6px; flex-wrap: wrap; }
+.category-badge { font-size: 0.78rem; padding: 2px 10px; border-radius: 12px; color: #fff; }
+.subject-badge { font-size: 0.78rem; padding: 2px 10px; border-radius: 12px; font-weight: bold; }
+/* 分野別カラー */
+.cat-life     { background: #27ae60; }
+.cat-risk     { background: #e74c3c; }
+.cat-finance  { background: #f39c12; }
+.cat-tax      { background: #8e44ad; }
+.cat-realty   { background: #2980b9; }
+.cat-inherit  { background: #16a085; }
+/* 学科/実技バッジ */
+.subj-gakka { background: #34495e; color: #fff; }
+.subj-jitsu { background: #e67e22; color: #fff; }
+.question-body { margin-bottom: 16px; white-space: pre-wrap; word-wrap: break-word; }
+.choices { display: flex; flex-direction: column; gap: 8px; }
+.choice-btn { text-align: left; padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: #fff; cursor: pointer; font-size: 0.95rem; transition: all 0.2s; }
+.choice-btn:hover { border-color: #27ae60; background: #eafaf1; }
+.choice-btn.correct { border-color: #27ae60; background: #eafaf1; }
+.choice-btn.wrong { border-color: #e74c3c; background: #fdecea; }
+.choice-btn.reveal { border-color: #27ae60; background: #eafaf1; }
+.choice-btn.selected { border-color: #27ae60; background: #eafaf1; }
+.choice-btn[disabled] { cursor: default; }
+.choice-btn[disabled]:hover { border-color: #e0e0e0; background: #fff; }
+.choice-btn.correct[disabled]:hover { border-color: #27ae60; background: #eafaf1; }
+.choice-btn.wrong[disabled]:hover { border-color: #e74c3c; background: #fdecea; }
+.choice-btn.reveal[disabled]:hover { border-color: #27ae60; background: #eafaf1; }
+.choice-btn.selected[disabled]:hover { border-color: #27ae60; background: #eafaf1; }
+.result-msg { margin-top: 12px; font-weight: bold; font-size: 1.1rem; }
+.result-msg.ok { color: #27ae60; }
+.result-msg.ng { color: #e74c3c; }
+/* 解説表示 */
+.explanation { margin-top: 12px; padding: 12px; background: #f0faf0; border-left: 4px solid #27ae60; border-radius: 0 6px 6px 0; font-size: 0.9rem; color: #444; }
+.nav-buttons { display: flex; justify-content: space-between; margin-top: 10px; }
+.nav-buttons button { padding: 8px 20px; border: none; border-radius: 6px; background: #95a5a6; color: #fff; cursor: pointer; font-size: 0.9rem; }
+.nav-buttons button:hover { background: #7f8c8d; }
+.progress-bar { width: 100%; height: 6px; background: #e0e0e0; border-radius: 3px; margin-bottom: 16px; }
+.progress-fill { height: 100%; background: #27ae60; border-radius: 3px; transition: width 0.3s; }
+
+/* === モード選択画面 === */
+.mode-select { text-align: center; margin-top: 60px; }
+.mode-select p { color: #666; margin-bottom: 30px; }
+.mode-btn { display: inline-block; width: 260px; padding: 20px; margin: 10px; border: 2px solid #e0e0e0; border-radius: 12px; background: #fff; cursor: pointer; font-size: 1.1rem; font-weight: bold; color: #2c3e50; transition: all 0.2s; }
+.mode-btn:hover { border-color: #27ae60; background: #eafaf1; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+.mode-btn .mode-icon { font-size: 2rem; display: block; margin-bottom: 8px; }
+.mode-btn .mode-desc { font-size: 0.8rem; font-weight: normal; color: #888; }
+
+/* === 模擬試験ヘッダー === */
+.mock-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+.mock-timer { font-size: 1.3rem; font-weight: bold; color: #1a5c38; font-variant-numeric: tabular-nums; }
+.mock-timer.warning { color: #e74c3c; }
+.mock-progress { font-size: 0.9rem; color: #666; }
+.mock-end-btn { padding: 8px 20px; border: none; border-radius: 6px; background: #e74c3c; color: #fff; cursor: pointer; font-size: 0.9rem; font-weight: bold; }
+.mock-end-btn:hover { background: #c0392b; }
+
+/* === 問題番号パネル === */
+.number-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; margin-bottom: 20px; }
+.num-cell { text-align: center; padding: 6px 0; border-radius: 4px; font-size: 0.75rem; cursor: pointer; background: #e0e0e0; color: #666; transition: all 0.15s; font-weight: bold; }
+.num-cell:hover { background: #bdc3c7; }
+.num-cell.answered { background: #27ae60; color: #fff; }
+.num-cell.current { outline: 2px solid #1a5c38; outline-offset: -2px; }
+
+/* === 結果画面 === */
+.result-screen { text-align: center; }
+.result-verdict { font-size: 2rem; font-weight: bold; margin: 20px 0; padding: 20px; border-radius: 12px; }
+.result-verdict.pass { background: #eafaf1; color: #27ae60; }
+.result-verdict.fail { background: #fdecea; color: #e74c3c; }
+.score-cards { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin: 20px 0; }
+.score-card { background: #fff; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 16px 24px; min-width: 160px; }
+.score-card .sc-label { font-size: 0.8rem; color: #888; }
+.score-card .sc-value { font-size: 1.8rem; font-weight: bold; color: #2c3e50; }
+.score-card .sc-detail { font-size: 0.8rem; color: #999; }
+.score-card .sc-bar { height: 6px; background: #e0e0e0; border-radius: 3px; margin-top: 8px; overflow: hidden; }
+.score-card .sc-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
+.sc-bar-fill.pass { background: #27ae60; }
+.sc-bar-fill.fail { background: #e74c3c; }
+.result-note { font-size: 0.8rem; color: #999; margin: 16px 0; }
+.result-actions { display: flex; gap: 12px; justify-content: center; margin: 20px 0; }
+.result-actions button { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: bold; }
+.btn-retry { background: #27ae60; color: #fff; }
+.btn-retry:hover { background: #219a52; }
+.btn-back { background: #95a5a6; color: #fff; }
+.btn-back:hover { background: #7f8c8d; }
+
+/* === 結果の問題一覧 === */
+.result-questions { text-align: left; margin-top: 30px; }
+.rq-header { font-size: 1.1rem; font-weight: bold; margin-bottom: 12px; color: #1a5c38; }
+.rq-item { padding: 10px 14px; border-radius: 6px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+.rq-item.rq-correct { background: #f0faf5; }
+.rq-item.rq-wrong { background: #fef0ee; }
+.rq-item.rq-unanswered { background: #f5f5f5; }
+.rq-label { font-size: 0.85rem; }
+.rq-mark { font-weight: bold; }
+.rq-detail { display: none; padding: 12px; margin: -4px 0 4px; background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 0.85rem; white-space: pre-wrap; word-wrap: break-word; }
+.rq-detail.open { display: block; }
+.rq-detail .explanation-mini { margin-top: 8px; padding: 8px; background: #f0faf0; border-left: 3px solid #27ae60; font-size: 0.83rem; color: #444; }
+
+.hidden { display: none !important; }
+
+/* === スマホ対応レスポンシブ === */
+@media (max-width: 600px) {
+  .container { padding: 12px; }
+  h1 { font-size: 1.2rem; margin: 12px 0; }
+
+  /* モード選択: 縦並びフル幅 */
+  .mode-select { margin-top: 30px; }
+  .mode-btn { display: block; width: 100%; margin: 10px 0; padding: 18px 16px; }
+
+  /* フィルタ: 年度フル幅 + 2列グリッド */
+  .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .controls select:first-child { grid-column: 1 / -1; }
+  .controls select, .controls button { padding: 10px 12px; font-size: 0.9rem; min-height: 44px; }
+
+  /* 選択肢ボタン: タップしやすく */
+  .choice-btn { padding: 14px 12px; font-size: 0.95rem; min-height: 48px; }
+  .question-card { padding: 16px; }
+  .question-body { font-size: 0.9rem; }
+
+  /* ナビボタン: 大きめ */
+  .nav-buttons button { padding: 12px 16px; font-size: 0.95rem; min-height: 44px; flex: 1; }
+  .nav-buttons { gap: 8px; }
+
+  /* 模擬試験 番号グリッド: 10列→5列 */
+  .number-grid { grid-template-columns: repeat(5, 1fr); gap: 4px; }
+  .num-cell { padding: 10px 0; font-size: 0.8rem; }
+
+  /* 模擬試験ヘッダー: sticky固定 */
+  .mock-header { position: sticky; top: 0; background: #f0faf0; z-index: 10; padding: 8px 0; border-bottom: 1px solid #c8e6c9; }
+  .mock-timer { font-size: 1.1rem; }
+  .mock-end-btn { padding: 8px 14px; font-size: 0.8rem; }
+
+  /* 結果画面: スコアカード縦並び */
+  .score-cards { flex-direction: column; align-items: center; }
+  .score-card { width: 100%; min-width: unset; }
+  .result-verdict { font-size: 1.5rem; padding: 16px; }
+  .result-actions { flex-direction: column; }
+  .result-actions button { width: 100%; padding: 14px; }
+
+  /* 結果の問題一覧 */
+  .rq-item { padding: 12px 10px; }
+  .rq-label { font-size: 0.8rem; }
+  .rq-detail { font-size: 0.8rem; padding: 10px; }
+}
+
+/* === PWA インストール案内バナー === */
+.install-banner { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: #eafaf1; border: 1px solid #27ae60; border-radius: 8px; margin-bottom: 16px; font-size: 0.9rem; }
+.install-banner.hidden { display: none; }
+.install-banner p { flex: 1; margin: 0; color: #1a5c38; }
+.install-banner button { padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
+#installBtn { background: #27ae60; color: #fff; }
+#installBtn:hover { background: #219a52; }
+.install-dismiss { background: transparent; color: #999; font-size: 1.1rem; padding: 4px 8px; }
+.install-dismiss:hover { color: #666; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>FP3級 過去問トレーニング</h1>
+
+  <!-- PWA インストール案内（対応ブラウザでのみ表示） -->
+  <div id="installBanner" class="install-banner hidden">
+    <p>ホーム画面に追加してオフラインでも使えます</p>
+    <button id="installBtn" onclick="installPWA()">インストール</button>
+    <button class="install-dismiss" onclick="dismissInstall()">✕</button>
+  </div>
+
+  <!-- モード選択画面 -->
+  <div id="modeSelect" class="mode-select">
+    <p>モードを選択してください</p>
+    <button class="mode-btn" onclick="startStudyMode()">
+      <span class="mode-icon">📖</span>
+      学習モード
+      <span class="mode-desc">分野・科目を絞って自由に学習</span>
+    </button>
+    <button class="mode-btn" onclick="startMockExam()">
+      <span class="mode-icon">📝</span>
+      模擬試験
+      <span class="mode-desc">学科60問＋実技20問 / 120分 / 合格判定あり</span>
+    </button>
+  </div>
+
+  <!-- 学習モード -->
+  <div id="studyMode" class="hidden">
+    <div class="controls">
+      <!-- 年度フィルタ（動的生成） -->
+      <select id="examFilter"><option value="all">全年度</option></select>
+      <!-- 分野フィルタ -->
+      <select id="catFilter">
+        <option value="all">全分野</option>
+        <option value="ライフプランニングと資金計画">ライフプランニングと資金計画</option>
+        <option value="リスク管理">リスク管理</option>
+        <option value="金融資産運用">金融資産運用</option>
+        <option value="タックスプランニング">タックスプランニング</option>
+        <option value="不動産">不動産</option>
+        <option value="相続・事業承継">相続・事業承継</option>
+      </select>
+      <!-- 学科/実技フィルタ -->
+      <select id="subjectFilter">
+        <option value="all">学科＋実技</option>
+        <option value="学科">学科のみ</option>
+        <option value="実技">実技のみ</option>
+      </select>
+      <button onclick="shuffle()">シャッフル</button>
+      <button class="btn-reset" onclick="resetAll()">リセット</button>
+      <button onclick="backToSelect()" style="background:#95a5a6;color:#fff;border:none;cursor:pointer;padding:8px 16px;border-radius:6px;font-size:0.95rem;">戻る</button>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="stats" id="stats"></div>
+    <div id="questionArea"></div>
+    <div class="nav-buttons">
+      <button onclick="prevQ()">← 前へ</button>
+      <button onclick="nextQ()">次へ →</button>
+    </div>
+  </div>
+
+  <!-- 模擬試験モード -->
+  <div id="mockMode" class="hidden">
+    <div class="mock-header">
+      <div class="mock-timer" id="mockTimer">残り 120:00</div>
+      <div class="mock-progress" id="mockProgress">回答: 0 / 0</div>
+      <button class="mock-end-btn" onclick="endMockExam()">試験終了</button>
+    </div>
+    <div class="number-grid" id="numberGrid"></div>
+    <div class="progress-bar"><div class="progress-fill" id="mockProgressBar"></div></div>
+    <div id="mockQuestionArea"></div>
+    <div class="nav-buttons">
+      <button onclick="mockPrev()">← 前へ</button>
+      <button onclick="mockNext()">次へ →</button>
+    </div>
+  </div>
+
+  <!-- 結果画面 -->
+  <div id="resultScreen" class="hidden result-screen"></div>
+</div>
+
+<script src="data.js"></script>
+<script>
+// === 共通 ===
+let mode = "select"; // "select" | "study" | "mock" | "result"
+
+function showScreen(name) {
+  mode = name;
+  document.getElementById("modeSelect").classList.toggle("hidden", name !== "select");
+  document.getElementById("studyMode").classList.toggle("hidden", name !== "study");
+  document.getElementById("mockMode").classList.toggle("hidden", name !== "mock");
+  document.getElementById("resultScreen").classList.toggle("hidden", name !== "result");
+}
+
+function backToSelect() {
+  showScreen("select");
+  if (mockTimerId) { clearInterval(mockTimerId); mockTimerId = null; }
+}
+
+/**
+ * 分野名からバッジ用CSSクラスを返す
+ */
+function getCatClass(cat) {
+  if (cat.includes("ライフプランニング")) return "cat-life";
+  if (cat.includes("リスク管理"))        return "cat-risk";
+  if (cat.includes("金融資産"))          return "cat-finance";
+  if (cat.includes("タックス"))          return "cat-tax";
+  if (cat.includes("不動産"))            return "cat-realty";
+  return "cat-inherit"; // 相続・事業承継
+}
+
+/**
+ * 学科/実技バッジ用CSSクラスを返す
+ */
+function getSubjectClass(subject) {
+  return subject === "実技" ? "subj-jitsu" : "subj-gakka";
+}
+
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// === 学習モード ===
+let filtered = [...DATA];
+let currentIdx = 0;
+let answered = {};
+let correctCount = 0;
+let totalAnswered = 0;
+
+// === localStorage キー（it-passportと被らないように fp3-study を使用）===
+const STORAGE_KEY = 'fp3-study';
+
+/**
+ * 学習進捗を localStorage に保存する
+ * 回答データ・正解数・回答済み数・現在のインデックス・フィルター状態を保存
+ */
+function saveStudyProgress() {
+  const progress = {
+    answered,
+    correctCount,
+    totalAnswered,
+    currentIdx,
+    filter: {
+      exam:    document.getElementById("examFilter").value,
+      cat:     document.getElementById("catFilter").value,
+      subject: document.getElementById("subjectFilter").value,
+    },
+    timestamp: Date.now(),
+  };
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+  } catch (e) {
+    // localStorage が使用不可の場合（プライベートブラウズ・容量超過等）は無視
+  }
+}
+
+/**
+ * localStorage から学習進捗を復元する
+ * フィルター状態は select 要素に反映するが、applyFilter() の呼び出しは呼び出し元に委ねる
+ */
+function loadStudyProgress() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (!saved) return false;
+  try {
+    const p = JSON.parse(saved);
+    answered      = p.answered      || {};
+    correctCount  = p.correctCount  || 0;
+    totalAnswered = p.totalAnswered  || 0;
+    currentIdx    = p.currentIdx    || 0;
+    // フィルター状態を select 要素へ反映
+    if (p.filter) {
+      const examEl    = document.getElementById("examFilter");
+      const catEl     = document.getElementById("catFilter");
+      const subjectEl = document.getElementById("subjectFilter");
+      if (p.filter.exam    && examEl.querySelector(`option[value="${p.filter.exam}"]`)) examEl.value    = p.filter.exam;
+      if (p.filter.cat)     catEl.value     = p.filter.cat;
+      if (p.filter.subject) subjectEl.value = p.filter.subject;
+    }
+    return true;
+  } catch (e) {
+    // JSON 破損等は無視して初期状態のまま続行
+    return false;
+  }
+}
+
+/**
+ * localStorage の学習進捗を消去する
+ */
+function clearStudyProgress() {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+function startStudyMode() {
+  showScreen("study");
+  loadStudyProgress(); // 保存済みの進捗を復元してからフィルターを適用
+  applyFilter();
+}
+
+function render() {
+  if (filtered.length === 0) {
+    document.getElementById("questionArea").innerHTML = "<p style='text-align:center;color:#999'>該当する問題がありません</p>";
+    document.getElementById("stats").textContent = "";
+    document.getElementById("progressFill").style.width = "0%";
+    return;
+  }
+  const q = filtered[currentIdx];
+  const key = q.exam + "-" + q.number;
+  const ans = answered[key];
+
+  let html = `<div class="question-card">
+    <div class="question-header">
+      <span class="question-num">${q.examLabel} 問${q.number}</span>
+      <div class="badges">
+        <span class="subject-badge ${getSubjectClass(q.subject)}">${q.subject}</span>
+        <span class="category-badge ${getCatClass(q.category)}">${q.category}</span>
+      </div>
+    </div>
+    <div class="question-body">${escapeHtml(q.body)}</div>
+    <div class="choices">`;
+
+  for (const [label, text] of Object.entries(q.choices)) {
+    let cls = "";
+    if (ans) {
+      if (label === q.answer) cls = ans === label ? "correct" : "reveal";
+      else if (label === ans) cls = "wrong";
+    }
+    html += `<button class="choice-btn ${cls}" ${ans ? "disabled" : ""} onclick="choose('${key}','${label}')">${label}　${escapeHtml(text)}</button>`;
+  }
+  html += `</div>`;
+
+  if (ans) {
+    const ok = ans === q.answer;
+    html += `<div class="result-msg ${ok ? 'ok' : 'ng'}">${ok ? '正解！' : '不正解（正解: ' + q.answer + '）'}</div>`;
+    // 解説表示（data.js に explanation フィールドがある場合）
+    if (q.explanation) {
+      html += `<div class="explanation"><strong>解説:</strong> ${escapeHtml(q.explanation)}</div>`;
+    }
+  }
+  html += `</div>`;
+
+  document.getElementById("questionArea").innerHTML = html;
+  document.getElementById("stats").textContent = `${currentIdx + 1} / ${filtered.length} 問　正解: ${correctCount} / ${totalAnswered}`;
+  document.getElementById("progressFill").style.width = ((currentIdx + 1) / filtered.length * 100) + "%";
+}
+
+function choose(key, label) {
+  if (answered[key]) return;
+  answered[key] = label;
+  totalAnswered++;
+  if (label === filtered[currentIdx].answer) correctCount++;
+  render();
+  saveStudyProgress(); // 回答のたびに進捗を保存
+}
+
+function nextQ() { if (currentIdx < filtered.length - 1) { currentIdx++; render(); window.scrollTo(0, 0); } }
+function prevQ() { if (currentIdx > 0) { currentIdx--; render(); window.scrollTo(0, 0); } }
+function shuffle() { filtered.sort(() => Math.random() - 0.5); currentIdx = 0; render(); window.scrollTo(0, 0); }
+function resetAll() { answered = {}; correctCount = 0; totalAnswered = 0; currentIdx = 0; clearStudyProgress(); applyFilter(); }
+
+function applyFilter() {
+  const exam    = document.getElementById("examFilter").value;
+  const cat     = document.getElementById("catFilter").value;
+  const subject = document.getElementById("subjectFilter").value;
+  filtered = DATA.filter(q =>
+    (exam    === "all" || q.exam    === exam) &&
+    (cat     === "all" || q.category === cat) &&
+    (subject === "all" || q.subject  === subject)
+  );
+  currentIdx = 0;
+  render();
+  saveStudyProgress(); // フィルター変更時もフィルター状態を保存
+}
+
+// 年度フィルタを動的生成（data.js の exam/examLabel から一意に取得）
+const exams = [...new Map(DATA.map(q => [q.exam, q.examLabel])).entries()];
+const sel = document.getElementById("examFilter");
+exams.forEach(([val, label]) => {
+  const o = document.createElement("option");
+  o.value = val; o.textContent = label; sel.appendChild(o);
+});
+document.getElementById("examFilter").addEventListener("change", applyFilter);
+document.getElementById("catFilter").addEventListener("change", applyFilter);
+document.getElementById("subjectFilter").addEventListener("change", applyFilter);
+
+// === 模擬試験モード ===
+// FP3級合格基準:
+//   学科: 60問中 36問以上正解（60%以上）
+//   実技: 20問中 12問以上正解（60%以上）
+//   両科目ともに合格基準を満たすことが必要
+let mockQuestions = [];
+let mockAnswers = {};
+let mockIdx = 0;
+let mockTimerId = null;
+let mockRemaining = 120 * 60; // 秒（学科・実技合わせて120分）
+
+/**
+ * 模擬試験の問題を選出する
+ * 学科から最大60問、実技から最大20問をランダムに選ぶ
+ * データが少ない場合は全問を使用する
+ */
+function pickMockQuestions() {
+  const gakka = DATA.filter(q => q.subject === "学科");
+  const jitsu  = DATA.filter(q => q.subject === "実技");
+
+  // シャッフル
+  const shuffled = arr => {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+
+  // 学科最大60問・実技最大20問（データ数が少ない場合は全問）
+  const gakkaPicked = shuffled(gakka).slice(0, 60);
+  const jitsuPicked  = shuffled(jitsu).slice(0, 20);
+
+  // 学科→実技の順に並べる
+  return [...gakkaPicked, ...jitsuPicked];
+}
+
+function startMockExam() {
+  mockQuestions = pickMockQuestions();
+  mockAnswers = {};
+  mockIdx = 0;
+  mockRemaining = 120 * 60;
+  showScreen("mock");
+  renderNumberGrid();
+  renderMockQuestion();
+  updateMockTimer();
+  if (mockTimerId) clearInterval(mockTimerId);
+  mockTimerId = setInterval(() => {
+    mockRemaining--;
+    updateMockTimer();
+    if (mockRemaining <= 0) {
+      clearInterval(mockTimerId);
+      mockTimerId = null;
+      endMockExam(true);
+    }
+  }, 1000);
+}
+
+function updateMockTimer() {
+  const m = Math.floor(mockRemaining / 60);
+  const s = mockRemaining % 60;
+  const el = document.getElementById("mockTimer");
+  el.textContent = `残り ${m}:${String(s).padStart(2, '0')}`;
+  el.classList.toggle("warning", mockRemaining < 300);
+}
+
+function renderNumberGrid() {
+  let html = "";
+  for (let i = 0; i < mockQuestions.length; i++) {
+    const key = mockQuestions[i].exam + "-" + mockQuestions[i].number;
+    const cls = [
+      "num-cell",
+      mockAnswers[key] ? "answered" : "",
+      i === mockIdx ? "current" : ""
+    ].join(" ");
+    html += `<div class="${cls}" onclick="mockJump(${i})">${i + 1}</div>`;
+  }
+  document.getElementById("numberGrid").innerHTML = html;
+  const answeredCount = Object.keys(mockAnswers).length;
+  document.getElementById("mockProgress").textContent = `回答: ${answeredCount} / ${mockQuestions.length}`;
+  document.getElementById("mockProgressBar").style.width = (mockQuestions.length > 0 ? answeredCount / mockQuestions.length * 100 : 0) + "%";
+}
+
+function renderMockQuestion() {
+  const q = mockQuestions[mockIdx];
+  const key = q.exam + "-" + q.number;
+  const ans = mockAnswers[key];
+  let html = `<div class="question-card">
+    <div class="question-header">
+      <span class="question-num">第${mockIdx + 1}問</span>
+      <div class="badges">
+        <span class="subject-badge ${getSubjectClass(q.subject)}">${q.subject}</span>
+        <span class="category-badge ${getCatClass(q.category)}">${q.category}</span>
+      </div>
+    </div>
+    <div class="question-body">${escapeHtml(q.body)}</div>
+    <div class="choices">`;
+  for (const [label, text] of Object.entries(q.choices)) {
+    const selCls = ans === label ? "selected" : "";
+    html += `<button class="choice-btn ${selCls}" onclick="mockChoose('${key}','${label}')">${label}　${escapeHtml(text)}</button>`;
+  }
+  html += `</div></div>`;
+  document.getElementById("mockQuestionArea").innerHTML = html;
+  renderNumberGrid();
+}
+
+function mockChoose(key, label) {
+  mockAnswers[key] = label;
+  renderMockQuestion();
+}
+
+function mockNext() { if (mockIdx < mockQuestions.length - 1) { mockIdx++; renderMockQuestion(); window.scrollTo(0, 0); } }
+function mockPrev() { if (mockIdx > 0) { mockIdx--; renderMockQuestion(); window.scrollTo(0, 0); } }
+function mockJump(i) { mockIdx = i; renderMockQuestion(); window.scrollTo(0, 0); }
+
+function endMockExam(timeUp) {
+  const unanswered = mockQuestions.length - Object.keys(mockAnswers).length;
+  if (!timeUp && unanswered > 0) {
+    if (!confirm(`未回答が ${unanswered} 問あります。試験を終了しますか？\n未回答は不正解として扱われます。`)) return;
+  }
+  if (mockTimerId) { clearInterval(mockTimerId); mockTimerId = null; }
+  showMockResult();
+}
+
+function showMockResult() {
+  showScreen("result");
+
+  // 学科・実技別に集計
+  const gakkaQuestions = mockQuestions.filter(q => q.subject === "学科");
+  const jitsuQuestions  = mockQuestions.filter(q => q.subject === "実技");
+
+  let gakkaCorrect = 0;
+  let jitsuCorrect  = 0;
+  const details = [];
+
+  mockQuestions.forEach((q, i) => {
+    const key = q.exam + "-" + q.number;
+    const userAns  = mockAnswers[key] || null;
+    const isCorrect = userAns === q.answer;
+    if (q.subject === "学科" && isCorrect) gakkaCorrect++;
+    if (q.subject === "実技" && isCorrect) jitsuCorrect++;
+    details.push({ idx: i + 1, q, userAns, isCorrect });
+  });
+
+  const gakkaTotal = gakkaQuestions.length;
+  const jitsuTotal  = jitsuQuestions.length;
+  const totalCorrect = gakkaCorrect + jitsuCorrect;
+  const totalQuestions = mockQuestions.length;
+
+  const gakkaPct = gakkaTotal > 0 ? Math.round(gakkaCorrect / gakkaTotal * 100) : 0;
+  const jitsuPct  = jitsuTotal  > 0 ? Math.round(jitsuCorrect  / jitsuTotal  * 100) : 0;
+  const totalPct  = totalQuestions > 0 ? Math.round(totalCorrect / totalQuestions * 100) : 0;
+
+  // FP3級合格基準: 学科・実技それぞれ60%以上
+  const passGakka = gakkaTotal === 0 || gakkaPct >= 60;
+  const passJitsu  = jitsuTotal  === 0 || jitsuPct  >= 60;
+  const passed = passGakka && passJitsu;
+
+  let html = `<div class="result-verdict ${passed ? 'pass' : 'fail'}">${passed ? '合格' : '不合格'}</div>`;
+
+  html += `<div class="score-cards">
+    <div class="score-card">
+      <div class="sc-label">総合</div>
+      <div class="sc-value">${totalCorrect}<span style="font-size:1rem;color:#999">/${totalQuestions}</span></div>
+      <div class="sc-detail">${totalPct}%</div>
+      <div class="sc-bar"><div class="sc-bar-fill ${passed ? 'pass' : 'fail'}" style="width:${totalPct}%"></div></div>
+    </div>
+    <div class="score-card">
+      <div class="sc-label">学科（60問）</div>
+      <div class="sc-value">${gakkaCorrect}<span style="font-size:1rem;color:#999">/${gakkaTotal}</span></div>
+      <div class="sc-detail">${gakkaPct}%（基準: 60%以上）</div>
+      <div class="sc-bar"><div class="sc-bar-fill ${passGakka ? 'pass' : 'fail'}" style="width:${gakkaPct}%"></div></div>
+    </div>
+    <div class="score-card">
+      <div class="sc-label">実技（20問）</div>
+      <div class="sc-value">${jitsuCorrect}<span style="font-size:1rem;color:#999">/${jitsuTotal}</span></div>
+      <div class="sc-detail">${jitsuPct}%（基準: 60%以上）</div>
+      <div class="sc-bar"><div class="sc-bar-fill ${passJitsu ? 'pass' : 'fail'}" style="width:${jitsuPct}%"></div></div>
+    </div>
+  </div>`;
+
+  html += `<div class="result-note">※ 実際のFP3級試験は学科・実技ともに各科目60%以上の得点が合格基準です。本判定は簡易判定です。</div>`;
+
+  html += `<div class="result-actions">
+    <button class="btn-retry" onclick="startMockExam()">もう一度</button>
+    <button class="btn-back" onclick="backToSelect()">トップへ</button>
+  </div>`;
+
+  // 問題一覧（クリックで詳細・解説表示）
+  html += `<div class="result-questions"><div class="rq-header">問題一覧（クリックで詳細表示）</div>`;
+  details.forEach(d => {
+    const statusCls = !d.userAns ? 'rq-unanswered' : d.isCorrect ? 'rq-correct' : 'rq-wrong';
+    const mark = !d.userAns ? '未回答' : d.isCorrect ? '正解' : '不正解';
+    const detailId = `rq-detail-${d.idx}`;
+    html += `<div class="rq-item ${statusCls}" onclick="document.getElementById('${detailId}').classList.toggle('open')">
+      <span class="rq-label">第${d.idx}問 — ${d.q.examLabel} 問${d.q.number}（${d.q.subject} / ${d.q.category}）</span>
+      <span class="rq-mark">${mark}</span>
+    </div>
+    <div class="rq-detail" id="${detailId}">
+      ${escapeHtml(d.q.body)}
+      ${Object.entries(d.q.choices).map(([l, t]) => {
+        let prefix = '';
+        if (l === d.q.answer) prefix = '✅ ';
+        else if (l === d.userAns) prefix = '❌ ';
+        return `\n${prefix}${l}　${escapeHtml(t)}`;
+      }).join('')}
+      ${!d.userAns ? '\n\n（未回答）正解: ' + d.q.answer : !d.isCorrect ? '\n\nあなたの回答: ' + d.userAns + ' → 正解: ' + d.q.answer : ''}
+      ${d.q.explanation ? `<div class="explanation-mini"><strong>解説:</strong> ${escapeHtml(d.q.explanation)}</div>` : ''}
+    </div>`;
+  });
+  html += `</div>`;
+
+  document.getElementById("resultScreen").innerHTML = html;
+}
+
+// === キーボードショートカット ===
+document.addEventListener("keydown", e => {
+  if (mode === "study") {
+    if (e.key === "ArrowRight" || e.key === "n") nextQ();
+    if (e.key === "ArrowLeft"  || e.key === "p") prevQ();
+    const q = filtered[currentIdx];
+    if (q) {
+      const key = q.exam + "-" + q.number;
+      if (e.key === "1") choose(key, "ア");
+      if (e.key === "2") choose(key, "イ");
+      if (e.key === "3") choose(key, "ウ");
+    }
+  } else if (mode === "mock") {
+    if (e.key === "ArrowRight" || e.key === "n") mockNext();
+    if (e.key === "ArrowLeft"  || e.key === "p") mockPrev();
+    const q = mockQuestions[mockIdx];
+    if (q) {
+      const key = q.exam + "-" + q.number;
+      if (e.key === "1") mockChoose(key, "ア");
+      if (e.key === "2") mockChoose(key, "イ");
+      if (e.key === "3") mockChoose(key, "ウ");
+    }
+  }
+});
+</script>
+<script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');</script>
+<script>
+/* PWA インストール案内 */
+(function() {
+  var deferredPrompt = null;
+  var banner = document.getElementById('installBanner');
+
+  window.addEventListener('beforeinstallprompt', function(e) {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (banner && !localStorage.getItem('fp3-pwa-dismissed')) {
+      banner.classList.remove('hidden');
+    }
+  });
+
+  window.installPWA = function() {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(function() {
+      deferredPrompt = null;
+      if (banner) banner.classList.add('hidden');
+    });
+  };
+
+  window.dismissInstall = function() {
+    if (banner) banner.classList.add('hidden');
+    localStorage.setItem('fp3-pwa-dismissed', '1');
+  };
+
+  window.addEventListener('appinstalled', function() {
+    if (banner) banner.classList.add('hidden');
+  });
+})();
+</script>
+</body>
+</html>

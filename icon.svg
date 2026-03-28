@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="80" fill="#27ae60"/>
+  <text x="256" y="210" text-anchor="middle" font-family="sans-serif" font-size="150" font-weight="bold" fill="#fff">FP</text>
+  <text x="256" y="330" text-anchor="middle" font-family="sans-serif" font-size="68" font-weight="bold" fill="#fff">3級</text>
+  <text x="256" y="420" text-anchor="middle" font-family="sans-serif" font-size="48" fill="rgba(255,255,255,0.85)">過去問</text>
+</svg>
