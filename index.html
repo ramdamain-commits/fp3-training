@@ -214,6 +214,19 @@ h1 { text-align: center; margin: 20px 0; color: #1a5c38; font-size: 1.5rem; }
   .chart-y-labels { left: -28px; }
 }
 
+
+/* === 進捗バックアップ / 復元エリア === */
+.backup-section { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 24px; padding: 16px; background: #fff; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.backup-section p { width: 100%; text-align: center; font-size: 0.8rem; color: #999; margin: 0; }
+.btn-backup  { padding: 8px 16px; border: none; border-radius: 6px; background: #27ae60; color: #fff; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
+.btn-backup:hover  { background: #219a52; }
+.btn-restore { padding: 8px 16px; border: none; border-radius: 6px; background: #f39c12; color: #fff; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
+.btn-restore:hover { background: #d68910; }
+@media (max-width: 600px) {
+  .backup-section { flex-direction: column; align-items: stretch; }
+  .btn-backup, .btn-restore { min-height: 44px; font-size: 0.9rem; }
+}
+
 /* === PWA インストール案内バナー === */
 .install-banner { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: #eafaf1; border: 1px solid #27ae60; border-radius: 8px; margin-bottom: 16px; font-size: 0.9rem; }
 .install-banner.hidden { display: none; }
@@ -254,6 +267,17 @@ h1 { text-align: center; margin: 20px 0; color: #1a5c38; font-size: 1.5rem; }
       成績
       <span class="mode-desc">推移グラフ・分野別弱点分析</span>
     </button>
+  </div>
+
+
+  <!-- 進捗バックアップ / 復元 -->
+  <div class="backup-section">
+    <button class="btn-backup" onclick="exportBackup()" aria-label="進捗データをJSONファイルとしてダウンロード">進捗バックアップ</button>
+    <label class="btn-restore" style="display:inline-block;text-align:center;cursor:pointer;" tabindex="0" role="button" aria-label="JSONファイルから進捗データを復元">
+      進捗復元
+      <input type="file" id="restoreFile" accept=".json" style="display:none" onchange="importBackup(event)">
+    </label>
+    <p>バックアップ: 学習進捗・成績履歴をJSONで保存。復元: JSONファイルを選択すると上書きします。</p>
   </div>
 
   <!-- 学習モード -->
@@ -915,6 +939,58 @@ function clearHistory() {
   if (!confirm('成績履歴をすべて削除しますか？この操作は取り消せません。')) return;
   localStorage.removeItem(HISTORY_KEY);
   showStats();
+}
+
+
+// === 進捗バックアップ / 復元 ===
+function exportBackup() {
+  var now = new Date();
+  var yyyy = now.getFullYear();
+  var mm   = String(now.getMonth() + 1).padStart(2, '0');
+  var dd   = String(now.getDate()).padStart(2, '0');
+  var filename = 'fp3-backup-' + yyyy + '-' + mm + '-' + dd + '.json';
+  var backup = { version: 1, exportedAt: now.toISOString() };
+  try { backup.study   = JSON.parse(localStorage.getItem(STORAGE_KEY));   } catch(e) {}
+  try { backup.history = JSON.parse(localStorage.getItem(HISTORY_KEY)); } catch(e) {}
+  if (!backup.study && !backup.history) {
+    alert('保存されている進捗データがありません。\n学習または模擬試験を行ってからバックアップしてください。');
+    return;
+  }
+  var blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+}
+
+function importBackup(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var backup = JSON.parse(e.target.result);
+      if (typeof backup !== 'object' || backup === null) throw new Error('Invalid format');
+      var restored = [];
+      if (backup.study) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(backup.study));
+        restored.push('学習進捗');
+      }
+      if (backup.history) {
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(backup.history));
+        restored.push('成績履歴');
+      }
+      if (restored.length === 0) {
+        alert('復元できるデータがファイルに見つかりませんでした。');
+      } else {
+        alert(restored.join('・') + ' を復元しました。\nページを操作してデータが反映されたことを確認してください。');
+      }
+    } catch(err) {
+      alert('ファイルの読み込みに失敗しました。\n正しいバックアップファイルを選択してください。\n\nエラー: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
 }
 
 // === キーボードショートカット ===

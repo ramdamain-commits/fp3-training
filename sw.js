@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fp3-training-v1';
+const CACHE_NAME = 'fp3-training-v3';
 const ASSETS = [
   './',
   './index.html',
