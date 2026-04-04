@@ -52,10 +52,9 @@ h1 { text-align: center; margin: 20px 0; color: #1a5c38; font-size: 1.5rem; }
 .choice-btn.selected { border-color: #27ae60; background: #eafaf1; }
 .choice-btn[disabled] { cursor: default; }
 .choice-btn[disabled]:hover { border-color: #e0e0e0; background: #fff; }
-.choice-btn.correct[disabled]:hover { border-color: #27ae60; background: #eafaf1; }
-.choice-btn.wrong[disabled]:hover { border-color: #e74c3c; background: #fdecea; }
+.choice-btn.correct[disabled]:hover,
 .choice-btn.reveal[disabled]:hover { border-color: #27ae60; background: #eafaf1; }
-.choice-btn.selected[disabled]:hover { border-color: #27ae60; background: #eafaf1; }
+.choice-btn.wrong[disabled]:hover { border-color: #e74c3c; background: #fdecea; }
 .result-msg { margin-top: 12px; font-weight: bold; font-size: 1.1rem; }
 .result-msg.ok { color: #27ae60; }
 .result-msg.ng { color: #e74c3c; }
@@ -342,6 +341,17 @@ h1 { text-align: center; margin: 20px 0; color: #1a5c38; font-size: 1.5rem; }
 // === 共通 ===
 let mode = "select"; // "select" | "study" | "mock" | "result"
 
+// 分野リストとカラーマップ（saveMockHistory / showStats で共用）
+const FP3_CATS = ["ライフプランニングと資金計画","リスク管理","金融資産運用","タックスプランニング","不動産","相続・事業承継"];
+const CAT_COLORS = {
+  "ライフプランニングと資金計画": "#27ae60",
+  "リスク管理": "#e74c3c",
+  "金融資産運用": "#f39c12",
+  "タックスプランニング": "#8e44ad",
+  "不動産": "#2980b9",
+  "相続・事業承継": "#16a085",
+};
+
 function showScreen(name) {
   mode = name;
   document.getElementById("modeSelect").classList.toggle("hidden", name !== "select");
@@ -485,7 +495,7 @@ function render() {
       if (label === q.answer) cls = ans === label ? "correct" : "reveal";
       else if (label === ans) cls = "wrong";
     }
-    html += `<button class="choice-btn ${cls}" ${ans ? "disabled" : ""} onclick="choose('${key}','${label}')">${label}　${escapeHtml(text)}</button>`;
+    html += `<button class="choice-btn ${cls}" ${ans ? "disabled" : ""} aria-pressed="${ans === label ? 'true' : 'false'}" onclick="choose('${key}','${label}')">${label}　${escapeHtml(text)}</button>`;
   }
   html += `</div>`;
 
@@ -643,7 +653,7 @@ function renderMockQuestion() {
     <div class="choices">`;
   for (const [label, text] of Object.entries(q.choices)) {
     const selCls = ans === label ? "selected" : "";
-    html += `<button class="choice-btn ${selCls}" onclick="mockChoose('${key}','${label}')">${label}　${escapeHtml(text)}</button>`;
+    html += `<button class="choice-btn ${selCls}" aria-pressed="${ans === label ? 'true' : 'false'}" onclick="mockChoose('${key}','${label}')">${label}　${escapeHtml(text)}</button>`;
   }
   html += `</div></div>`;
   document.getElementById("mockQuestionArea").innerHTML = html;
@@ -778,7 +788,6 @@ function saveMockHistory(gakkaCorrect, gakkaTotal, jitsuCorrect, jitsuTotal) {
   const totalCorrect = gakkaCorrect + jitsuCorrect;
   const totalAll = gakkaTotal + jitsuTotal;
   // 分野別集計
-  const FP3_CATS = ["ライフプランニングと資金計画","リスク管理","金融資産運用","タックスプランニング","不動産","相続・事業承継"];
   const catData = {};
   FP3_CATS.forEach(c => { catData[c] = { correct: 0, total: 0 }; });
   mockQuestions.forEach(q => {
@@ -815,15 +824,6 @@ function showStats() {
   showScreen("stats");
   const history = loadHistory();
   const el = document.getElementById("statsScreen");
-  const FP3_CATS = ["ライフプランニングと資金計画","リスク管理","金融資産運用","タックスプランニング","不動産","相続・事業承継"];
-  const catColors = {
-    "ライフプランニングと資金計画": "#27ae60",
-    "リスク管理": "#e74c3c",
-    "金融資産運用": "#f39c12",
-    "タックスプランニング": "#8e44ad",
-    "不動産": "#2980b9",
-    "相続・事業承継": "#16a085",
-  };
 
   let html = '<div class="stats-header"><h2>成績・弱点分析</h2><button class="stats-back" onclick="backToSelect()">戻る</button></div>';
 
@@ -904,7 +904,7 @@ function showStats() {
   FP3_CATS.forEach(cat => {
     const d = catTotals[cat];
     const pct = d.total > 0 ? Math.round(d.correct / d.total * 100) : 0;
-    const color = catColors[cat] || '#27ae60';
+    const color = CAT_COLORS[cat] || '#27ae60';
     html += `<div class="weakness-cat">`;
     html += `<div class="weakness-label"><span class="cat-name">${escapeHtml(cat)}</span><span class="cat-pct" style="color:${color}">${pct}% <span style="font-weight:normal;color:#999;font-size:0.8rem">(${d.correct}/${d.total})</span></span></div>`;
     html += `<div class="weakness-bar"><div class="weakness-bar-fill" style="width:${pct}%;background:${color}"></div></div>`;
@@ -944,34 +944,34 @@ function clearHistory() {
 
 // === 進捗バックアップ / 復元 ===
 function exportBackup() {
-  var now = new Date();
-  var yyyy = now.getFullYear();
-  var mm   = String(now.getMonth() + 1).padStart(2, '0');
-  var dd   = String(now.getDate()).padStart(2, '0');
-  var filename = 'fp3-backup-' + yyyy + '-' + mm + '-' + dd + '.json';
-  var backup = { version: 1, exportedAt: now.toISOString() };
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm   = String(now.getMonth() + 1).padStart(2, '0');
+  const dd   = String(now.getDate()).padStart(2, '0');
+  const filename = 'fp3-backup-' + yyyy + '-' + mm + '-' + dd + '.json';
+  const backup = { version: 1, exportedAt: now.toISOString() };
   try { backup.study   = JSON.parse(localStorage.getItem(STORAGE_KEY));   } catch(e) {}
   try { backup.history = JSON.parse(localStorage.getItem(HISTORY_KEY)); } catch(e) {}
   if (!backup.study && !backup.history) {
     alert('保存されている進捗データがありません。\n学習または模擬試験を行ってからバックアップしてください。');
     return;
   }
-  var blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-  var a = document.createElement('a');
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = filename;
   a.click();
 }
 
 function importBackup(event) {
-  var file = event.target.files[0];
+  const file = event.target.files[0];
   if (!file) return;
-  var reader = new FileReader();
+  const reader = new FileReader();
   reader.onload = function(e) {
     try {
-      var backup = JSON.parse(e.target.result);
+      const backup = JSON.parse(e.target.result);
       if (typeof backup !== 'object' || backup === null) throw new Error('Invalid format');
-      var restored = [];
+      const restored = [];
       if (backup.study) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(backup.study));
         restored.push('学習進捗');
@@ -1022,8 +1022,8 @@ document.addEventListener("keydown", e => {
 <script>
 /* PWA インストール案内 */
 (function() {
-  var deferredPrompt = null;
-  var banner = document.getElementById('installBanner');
+  let deferredPrompt = null;
+  const banner = document.getElementById('installBanner');
 
   window.addEventListener('beforeinstallprompt', function(e) {
     e.preventDefault();
